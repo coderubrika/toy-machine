@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using UltEvents;
 using UnityEngine;
 
 namespace Assets.Scripts
@@ -6,70 +7,62 @@ namespace Assets.Scripts
     public class JoystickController : MonoBehaviour
     {
 
+        public UltEvent<Vector2> OnMove;
+
         public Transform topOfJoystick;
 
-        [SerializeField]
-        private float forwardBackwardTilt = 0;
-        private float prevFBT = 0;
+        private bool holdOn = false;
+
+        private Transform hand;
 
         [SerializeField]
-        private float sideToSideTilt = 0;
-        private float prevSST = 0;
+        private Transform costraint;
+
+        private Quaternion revertRotation;
+
+        [SerializeField]
+        private float speedOfRevert = 10f;
+
+        private void Awake()
+        {
+            revertRotation = Quaternion.LookRotation(costraint.up);
+        }
 
         private void Update()
         {
-            forwardBackwardTilt = topOfJoystick.rotation.eulerAngles.x;
-
-            if (forwardBackwardTilt < 355 && forwardBackwardTilt > 290)
+            if (hand && holdOn)
             {
-                forwardBackwardTilt = Mathf.Abs(forwardBackwardTilt - 360);
-                
-                if (prevFBT != forwardBackwardTilt)
-                {
-                    prevFBT = forwardBackwardTilt;
-                    Debug.LogFormat("Backward {0}", forwardBackwardTilt);
-                }
-                
+
+                Vector3 handInversePosition = costraint.InverseTransformPoint(hand.position);
+
+                handInversePosition.y = Mathf.Clamp(handInversePosition.y, 0, float.PositiveInfinity);
+
+                Vector3 lookTarget = costraint.TransformPoint(handInversePosition);
+
+                transform.LookAt(lookTarget, transform.up);
+
+                Vector3 topInverseByConstaint = costraint.InverseTransformPoint(topOfJoystick.position);
+
+                OnMove.InvokeSafe(new Vector2(Mathf.Clamp(topInverseByConstaint.x, -1, 1), Mathf.Clamp(topInverseByConstaint.z, -1, 1)));
+            }
+          
+            else
+            { 
+                transform.rotation = Quaternion.Slerp(transform.rotation, revertRotation, speedOfRevert * Time.deltaTime);
             }
 
-            else if (forwardBackwardTilt > 5 && forwardBackwardTilt < 74)
-            {
-                if (prevFBT != forwardBackwardTilt)
-                {
-                    prevFBT = forwardBackwardTilt;
-                    Debug.LogFormat("Forward {0}", forwardBackwardTilt);
-                }
-            }
-
-            sideToSideTilt = topOfJoystick.rotation.eulerAngles.z;
-
-            if (sideToSideTilt < 355 && sideToSideTilt > 290)
-            {
-                sideToSideTilt = Mathf.Abs(sideToSideTilt - 360);
-
-                if (prevSST != sideToSideTilt)
-                {
-                    prevSST = sideToSideTilt;
-                    Debug.LogFormat("Right {0}", sideToSideTilt);
-                }
-            }
-
-            else if (sideToSideTilt > 5 && sideToSideTilt < 74)
-            {
-                if (prevSST != sideToSideTilt)
-                {
-                    prevSST = sideToSideTilt;
-                    Debug.LogFormat("Left {0}", sideToSideTilt);
-                }
-            }
         }
 
-        public void OnTriggerStay(Collider other)
+        public void Hold(Transform hand)
         {
-            if (other.CompareTag("Player"))
-            {
-                transform.LookAt(other.transform.position, transform.up);
-            }
+            this.hand = hand;
+            holdOn = true;
+        }
+
+        public void Relax()
+        {
+            this.hand = null;
+            holdOn = false;
         }
     }
 }
