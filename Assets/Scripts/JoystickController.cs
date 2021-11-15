@@ -7,7 +7,7 @@ namespace Assets.Scripts
     public class JoystickController : MonoBehaviour
     {
 
-        public UltEvent<Vector2> OnMove;
+        public UltEvent<Vector3> OnMove;
 
         public Transform topOfJoystick;
 
@@ -43,7 +43,7 @@ namespace Assets.Scripts
 
                 Vector3 topInverseByConstaint = costraint.InverseTransformPoint(topOfJoystick.position);
 
-                OnMove.InvokeSafe(new Vector2(Mathf.Clamp(topInverseByConstaint.x, -1, 1), Mathf.Clamp(topInverseByConstaint.z, -1, 1)));
+                OnMove.InvokeSafe(new Vector3(Mathf.Clamp(topInverseByConstaint.x, -1, 1), 0f, Mathf.Clamp(topInverseByConstaint.z, -1, 1)));
             }
           
             else
@@ -61,7 +61,7 @@ namespace Assets.Scripts
 
         public void Relax()
         {
-            this.hand = null;
+            hand = null;
             holdOn = false;
         }
     }
